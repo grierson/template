@@ -1,0 +1,5 @@
+/*.db
+.clj-kondo
+.cpcache
+.nrepl-port
+/.lsp
