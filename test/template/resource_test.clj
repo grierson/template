@@ -51,4 +51,4 @@
         (is (= 200 (:status request))))
       (testing "Contains events"
         (is (= 1 (count events)))
-        (is (= "aggregate-created" (:type event)))))))
+        (is (= "aggregate-created" (:events/type event)))))))
