@@ -3,7 +3,7 @@
    [clojure.test :refer [deftest is testing use-fixtures]]
    [template.system :as system]
    [donut.system :as ds]
-   [jsonista.core :as j]))
+   [jsonista.core :as json]))
 
 (require 'hashp.core)
 
@@ -17,7 +17,7 @@
   (-> request
       :body
       slurp
-      (j/read-value j/keyword-keys-object-mapper)))
+      (json/read-value json/keyword-keys-object-mapper)))
 
 (deftest health-test
   (let [{:keys [handler]} (extract ds/*system*)
@@ -41,10 +41,11 @@
 (deftest events-found-test
   (let [{:keys [handler]} (extract ds/*system*)
         _ (handler {:request-method :post
-                    :uri "/aggregate"})
+                    :uri "/aggregates"
+                    :body-params {:name "alice"}})
         request (handler {:request-method :get
                           :uri "/events"})
-        events (request->map request)
+        events #p (request->map request)
         event (first events)]
     (testing "/events"
       (testing "Calling events returns 200"
@@ -52,3 +53,16 @@
       (testing "Contains events"
         (is (= 1 (count events)))
         (is (= "aggregate-created" (:events/type event)))))))
+
+(deftest post-aggregate-test
+  (let [{:keys [handler]} (extract ds/*system*)
+        name "alice"
+        request (handler {:request-method :post
+                          :uri "/aggregates"
+                          :body-params {:name name}})
+        response (request->map request)]
+    (testing "/aggregates"
+      (testing "Calling POST returns 201"
+        (is (= 201 (:status request))))
+      (testing "Contains properties"
+        (is (= name (:name response)))))))

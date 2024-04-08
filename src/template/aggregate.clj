@@ -1,6 +1,8 @@
 (ns template.aggregate
   (:require [taoensso.carmine :as car :refer [wcar]]
-            [tick.core :as tick])
+            [tick.core :as tick]
+            [jsonista.core :as json]
+            [template.event-store :as events])
   (:import [com.github.fppt.jedismock RedisServer]))
 
 (defn make-server []
@@ -26,15 +28,27 @@
    :type        "aggregate-created"
    :stream-id   stream-id
    :stream-type "aggregate"
-   :data        data
+   :data        (json/write-value-as-string data)
    :created-at  created-at})
 
-(defmulti apply-event :type)
+(defmulti apply-event (fn [_ event] (:events/type event)))
 
 (defmethod apply-event :default [state _] state)
 
 (defmethod apply-event "aggregate-created"
-  [state {:keys [data]}]
-  (merge state data))
+  [state event]
+  (merge state (:events/data event)))
 
 (defn project [events] (reduce apply-event {} events))
+
+(defn project-aggregate [store id]
+  (project
+   (map
+    (fn [e] (update e :events/data (fn [x] (json/read-value x json/keyword-keys-object-mapper))))
+    (events/get-aggregate-events store id))))
+
+(defn create-aggregate [store data]
+  (let [id (random-uuid)
+        event (created-event {:stream-id id :data data})]
+    (events/raise store event)
+    (project-aggregate store id)))
