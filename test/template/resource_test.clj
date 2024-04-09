@@ -56,7 +56,7 @@
         (is (= {:name name} (:events/data event)))
         (is (= "aggregate-created" (:events/type event)))))))
 
-(deftest post-aggregate-test
+(deftest post-aggregates-test
   (let [{:keys [handler]} (extract ds/*system*)
         name "alice"
         request (handler {:request-method :post
@@ -66,5 +66,22 @@
     (testing "/aggregates"
       (testing "Calling POST returns 201"
         (is (= 201 (:status request))))
+      (testing "Contains properties"
+        (is (= name (:name response)))))))
+
+(deftest get-aggregate-test
+  (let [{:keys [handler]} (extract ds/*system*)
+        name "alice"
+        create-aggregate-response
+        (handler {:request-method :post
+                  :uri "/aggregates"
+                  :body-params {:name name}})
+        data (request->map create-aggregate-response)
+        request (handler {:request-method :get
+                          :uri (get-in data [:links :self])})
+        response (request->map request)]
+    (testing "/aggregate/:id"
+      (testing "Calling GET returns 200"
+        (is (= 200 (:status request))))
       (testing "Contains properties"
         (is (= name (:name response)))))))

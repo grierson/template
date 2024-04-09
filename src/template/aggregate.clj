@@ -48,4 +48,4 @@
   (let [id (random-uuid)
         event (created-event {:stream-id id :data data})]
     (events/raise store event)
-    (project-aggregate store id)))
+    (merge {:id id} (project-aggregate store id))))

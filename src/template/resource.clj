@@ -32,7 +32,7 @@
                     :body (events/get-events event-store start end)})}}]
      ["/aggregate/:id"
       {:get
-       {:parameters {:path {:id int?}}
+       {:parameters {:path {:id uuid?}}
         :handler (fn [{{{:keys [id]} :path} :parameters}]
                    (let [events (events/get-aggregate-events event-store id)
                          aggregate (aggregate/project events)]
@@ -44,7 +44,9 @@
         :handler (fn [{{{:keys [name]} :body} :parameters}]
                    (let [aggregate (aggregate/create-aggregate event-store {:name name})]
                      {:status 201
-                      :body aggregate}))}}]]
+                      :body (merge
+                             aggregate
+                             {:links {:self (str "/aggregate/" (:id aggregate))}})}))}}]]
     {:data       {:coercion mcoercion/coercion
                   :muuntaja   m/instance
                   :middleware [parameters/parameters-middleware
