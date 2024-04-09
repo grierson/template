@@ -42,10 +42,7 @@
 (defn project [events] (reduce apply-event {} events))
 
 (defn project-aggregate [store id]
-  (project
-   (map
-    (fn [e] (update e :events/data (fn [x] (json/read-value x json/keyword-keys-object-mapper))))
-    (events/get-aggregate-events store id))))
+  (project (events/get-aggregate-events store id)))
 
 (defn create-aggregate [store data]
   (let [id (random-uuid)

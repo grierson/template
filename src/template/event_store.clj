@@ -1,5 +1,6 @@
 (ns template.event-store
   (:require
+   [jsonista.core :as json]
    [next.jdbc :as jdbc]
    [next.jdbc.sql :as sql]))
 
@@ -25,13 +26,17 @@
   ([store]
    (get-events store 1 10))
   ([store start end]
-   (sql/query
-    store
-    ["SELECT * FROM events WHERE position BETWEEN ? AND ?" start end]
-    jdbc/snake-kebab-opts)))
+   (map
+    (fn [e] (update e :events/data (fn [x] (json/read-value x json/keyword-keys-object-mapper))))
+    (sql/query
+     store
+     ["SELECT * FROM events WHERE position BETWEEN ? AND ?" start end]
+     jdbc/snake-kebab-opts))))
 
 (defn get-aggregate-events [store id]
-  (sql/query store ["SELECT * FROM events WHERE stream_id = ?" id] jdbc/snake-kebab-opts))
+  (map
+   (fn [e] (update e :events/data (fn [x] (json/read-value x json/keyword-keys-object-mapper))))
+   (sql/query store ["SELECT * FROM events WHERE stream_id = ?" id] jdbc/snake-kebab-opts)))
 
 (defn raise [store event]
   (sql/insert! store :events event jdbc/snake-kebab-opts))

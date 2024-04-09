@@ -40,18 +40,20 @@
 
 (deftest events-found-test
   (let [{:keys [handler]} (extract ds/*system*)
+        name "alice"
         _ (handler {:request-method :post
                     :uri "/aggregates"
-                    :body-params {:name "alice"}})
+                    :body-params {:name name}})
         request (handler {:request-method :get
                           :uri "/events"})
-        events #p (request->map request)
+        events (request->map request)
         event (first events)]
     (testing "/events"
       (testing "Calling events returns 200"
         (is (= 200 (:status request))))
       (testing "Contains events"
         (is (= 1 (count events)))
+        (is (= {:name name} (:events/data event)))
         (is (= "aggregate-created" (:events/type event)))))))
 
 (deftest post-aggregate-test
