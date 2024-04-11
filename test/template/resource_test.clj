@@ -72,16 +72,32 @@
 (deftest get-aggregate-test
   (let [{:keys [handler]} (extract ds/*system*)
         name "alice"
-        create-aggregate-response
+        created-aggregate
         (handler {:request-method :post
                   :uri "/aggregates"
                   :body-params {:name name}})
-        data (request->map create-aggregate-response)
+        data #p (request->map created-aggregate)
         request (handler {:request-method :get
                           :uri (get-in data [:links :self])})
-        response (request->map request)]
+        response #p (request->map request)]
     (testing "/aggregate/:id"
       (testing "Calling GET returns 200"
         (is (= 200 (:status request))))
       (testing "Contains properties"
         (is (= name (:name response)))))))
+
+(deftest get-aggregates-test
+  (let [{:keys [handler]} (extract ds/*system*)
+        [name1 name2] ["alice" "bob"]
+        _ (handler {:request-method :post
+                    :uri "/aggregates"
+                    :body-params {:name name1}})
+        _ (handler {:request-method :post
+                    :uri "/aggregates"
+                    :body-params {:name name2}})
+        request (handler {:request-method :get
+                          :uri "/aggregates"})
+        response (request->map request)]
+    (testing "GET /aggregates"
+      (testing "returns 200"
+        (is (= 200 (:status request)))))))

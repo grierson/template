@@ -4,7 +4,7 @@
    [clojure.java.io :as io]
    [donut.system :as ds]
    [ring.adapter.jetty :as rj]
-   [template.event-store :as events]
+   [template.events :as events]
    [template.resource :as resource]))
 
 (defn env-config [profile]

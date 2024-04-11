@@ -1,4 +1,4 @@
-(ns template.event-store
+(ns template.events
   (:require
    [jsonista.core :as json]
    [next.jdbc :as jdbc]
@@ -17,6 +17,12 @@
       stream_type varchar(255),
       data varchar(MAX),
       created_at datetime default CURRENT_TIMESTAMP)"])
+    (jdbc/execute!
+     ds
+     ["create table if not exists projections (
+      id UUID NOT NULL DEFAULT random_uuid() PRIMARY KEY,
+      type varchar(255),
+      data varchar(MAX))"])
     ds))
 
 (defn kill-store [store]
@@ -38,5 +44,6 @@
    (fn [e] (update e :events/data (fn [x] (json/read-value x json/keyword-keys-object-mapper))))
    (sql/query store ["SELECT * FROM events WHERE stream_id = ?" id] jdbc/snake-kebab-opts)))
 
-(defn raise [store event]
-  (sql/insert! store :events event jdbc/snake-kebab-opts))
+(defn raise [store {:keys [id] :as event}]
+  (sql/insert! store :events event jdbc/snake-kebab-opts)
+  (sql/get-by-id store :events id))

@@ -1,25 +1,11 @@
 (ns template.aggregate
-  (:require [taoensso.carmine :as car :refer [wcar]]
-            [tick.core :as tick]
-            [jsonista.core :as json]
-            [template.event-store :as events])
-  (:import [com.github.fppt.jedismock RedisServer]))
+  (:require
+   [jsonista.core :as json]
+   [template.events :as events]
+   [template.projection :as projection]
+   [tick.core :as tick]))
 
-(defn make-server []
-  (let [server (RedisServer/newRedisServer)
-        _ (.start server)]
-    server))
-
-(defn make-store [server]
-  (let [redis-host (.getHost server)
-        redis-port (.getBindPort server)
-        redis-url (str "redis://" redis-host ":" redis-port)]
-    {:pool (car/connection-pool {})
-     :spec {:uri redis-url}}))
-
-(defn get-projection [store id] (wcar store (car/get id)))
-
-(defn created-event
+(defn aggregate-created-event
   [{:keys [id stream-id created-at data]
     :or {id (random-uuid)
          created-at (tick/now)
@@ -45,7 +31,12 @@
   (project (events/get-aggregate-events store id)))
 
 (defn create-aggregate [store data]
-  (let [id (random-uuid)
-        event (created-event {:stream-id id :data data})]
-    (events/raise store event)
-    (merge {:id id} (project-aggregate store id))))
+  (let [aggregate-id (random-uuid)
+        event (aggregate-created-event {:stream-id aggregate-id
+                                        :data (merge {:id aggregate-id} data)})
+        _ (events/raise store event)
+        projected-aggregate (project-aggregate store aggregate-id)]
+    (projection/upsert store {:id aggregate-id
+                              :type "aggregate"
+                              :data (json/write-value-as-string projected-aggregate)})
+    projected-aggregate))

@@ -1,14 +1,15 @@
 (ns template.resource
   (:require
-   [reitit.ring :as ring]
    [malli.experimental.lite :as l]
-   [reitit.coercion.malli :as mcoercion]
-   [reitit.ring.coercion :as rrc]
-   [reitit.ring.middleware.parameters :as parameters]
-   [reitit.ring.middleware.muuntaja :as muuntaja]
    [muuntaja.core :as m]
+   [reitit.coercion.malli :as mcoercion]
+   [reitit.ring :as ring]
+   [reitit.ring.coercion :as rrc]
+   [reitit.ring.middleware.muuntaja :as muuntaja]
+   [reitit.ring.middleware.parameters :as parameters]
    [template.aggregate :as aggregate]
-   [template.event-store :as events]))
+   [template.events :as events]
+   [template.projection :as projection]))
 
 (require 'hashp.core)
 
@@ -34,12 +35,15 @@
       {:get
        {:parameters {:path {:id uuid?}}
         :handler (fn [{{{:keys [id]} :path} :parameters}]
-                   (let [events (events/get-aggregate-events event-store id)
-                         aggregate (aggregate/project events)]
+                   (let [aggregate (projection/fetch event-store #p id)]
                      {:status 200
                       :body aggregate}))}}]
      ["/aggregates"
-      {:post
+      {:get
+       {:handler (fn [_]
+                   {:status 200
+                    :body []})}
+       :post
        {:parameters {:body [:map [:name string?]]}
         :handler (fn [{{{:keys [name]} :body} :parameters}]
                    (let [aggregate (aggregate/create-aggregate event-store {:name name})]
