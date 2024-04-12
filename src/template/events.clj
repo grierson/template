@@ -6,9 +6,9 @@
 
 (defn make-store []
   (let [db {:dbtype "h2" :dbname "template"}
-        ds (jdbc/get-datasource db)]
+        store (jdbc/get-datasource db)]
     (jdbc/execute!
-     ds
+     store
      ["create table if not exists events (
       id UUID NOT NULL DEFAULT random_uuid() PRIMARY KEY,
       position int auto_increment,
@@ -18,15 +18,16 @@
       data varchar(MAX),
       created_at datetime default CURRENT_TIMESTAMP)"])
     (jdbc/execute!
-     ds
+     store
      ["create table if not exists projections (
       id UUID NOT NULL DEFAULT random_uuid() PRIMARY KEY,
       type varchar(255),
       data varchar(MAX))"])
-    ds))
+    store))
 
 (defn kill-store [store]
-  (jdbc/execute! store ["drop table events"]))
+  (jdbc/execute! store ["DROP TABLE events"])
+  (jdbc/execute! store ["DROP TABLE projections"]))
 
 (defn get-events
   ([store]

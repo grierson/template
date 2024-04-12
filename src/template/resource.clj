@@ -35,14 +35,14 @@
       {:get
        {:parameters {:path {:id uuid?}}
         :handler (fn [{{{:keys [id]} :path} :parameters}]
-                   (let [aggregate (projection/fetch event-store #p id)]
+                   (let [aggregate (projection/get-by-id event-store id)]
                      {:status 200
                       :body aggregate}))}}]
      ["/aggregates"
       {:get
        {:handler (fn [_]
                    {:status 200
-                    :body []})}
+                    :body (projection/get-projections event-store)})}
        :post
        {:parameters {:body [:map [:name string?]]}
         :handler (fn [{{{:keys [name]} :body} :parameters}]

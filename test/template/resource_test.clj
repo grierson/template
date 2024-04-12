@@ -41,9 +41,11 @@
 (deftest events-found-test
   (let [{:keys [handler]} (extract ds/*system*)
         name "alice"
-        _ (handler {:request-method :post
-                    :uri "/aggregates"
-                    :body-params {:name name}})
+        created-aggregregate
+        (handler {:request-method :post
+                  :uri "/aggregates"
+                  :body-params {:name name}})
+        created-resource (request->map created-aggregregate)
         request (handler {:request-method :get
                           :uri "/events"})
         events (request->map request)
@@ -53,7 +55,8 @@
         (is (= 200 (:status request))))
       (testing "Contains events"
         (is (= 1 (count events)))
-        (is (= {:name name} (:events/data event)))
+        (is (= {:name name :id (:id created-resource)}
+               (:events/data event)))
         (is (= "aggregate-created" (:events/type event)))))))
 
 (deftest post-aggregates-test
@@ -76,15 +79,15 @@
         (handler {:request-method :post
                   :uri "/aggregates"
                   :body-params {:name name}})
-        data #p (request->map created-aggregate)
+        data (request->map created-aggregate)
         request (handler {:request-method :get
                           :uri (get-in data [:links :self])})
-        response #p (request->map request)]
+        response (request->map request)]
     (testing "/aggregate/:id"
       (testing "Calling GET returns 200"
         (is (= 200 (:status request))))
       (testing "Contains properties"
-        (is (= name (:name response)))))))
+        (is (= name (get-in response [:projections/data :name])))))))
 
 (deftest get-aggregates-test
   (let [{:keys [handler]} (extract ds/*system*)
@@ -100,4 +103,6 @@
         response (request->map request)]
     (testing "GET /aggregates"
       (testing "returns 200"
-        (is (= 200 (:status request)))))))
+        (is (= 200 (:status request))))
+      (testing "properties"
+        (is (= 2 (count response)))))))

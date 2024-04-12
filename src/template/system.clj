@@ -41,8 +41,6 @@
   [_]
   base-system)
 
-(env-config :foo)
-
 (defmethod ds/named-system ::production
   [_]
   (ds/system ::base {[:env] (env-config :production)}))
