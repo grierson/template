@@ -28,7 +28,10 @@
       (is (= 200 (:status request))))
     (testing "contains discovery link"
       (is (= {:links {:self "/"
-                      :events "/events"}} resource)))))
+                      :events "/events{?start,end}"
+                      :aggregate "/aggregate/{id}"
+                      :aggregates "/aggregates"}}
+             resource)))))
 
 (deftest health-test
   (let [{:keys [handler]} (extract ds/*system*)

@@ -10,22 +10,27 @@
    [template.aggregate :as aggregate]
    [template.events :as events]
    [template.projection :as projection]
-   [reitit.core :as r]))
+   [reitit.core :as r]
+   [reitit.impl :as impl]))
 
 (require 'hashp.core)
+
+(defn url-for
+  ([router name] (url-for router name {}))
+  ([router name path-params]
+   (let [match (r/match-by-name router name path-params)
+         template (:template match)
+         route (impl/parse template (r/options router))]
+     (impl/path-for route path-params))))
 
 (defn make-routes [{:keys [event-store]}]
   [["/" {:name ::discovery
          :get {:handler (fn [{::r/keys [router]}]
                           {:status 200
-                           :body {:links {:self
-                                          (-> router
-                                              (r/match-by-name ::discovery)
-                                              (r/match->path))
-                                          :events
-                                          (-> router
-                                              (r/match-by-name ::events)
-                                              (r/match->path))}}})}}]
+                           :body {:links {:self (url-for router ::discovery)
+                                          :events (str (url-for router ::events) "{?start,end}")
+                                          :aggregate (url-for router ::aggregate {:id "{id}"})
+                                          :aggregates (url-for router ::aggregates)}}})}}]
    ["/health"
     {:name ::health
      :get
@@ -57,12 +62,15 @@
                   :body (projection/get-projections event-store)})}
      :post
      {:parameters {:body [:map [:name string?]]}
-      :handler (fn [{{{:keys [name]} :body} :parameters}]
-                 (let [aggregate (aggregate/create-aggregate event-store {:name name})]
+      :handler (fn [request]
+                 (let [{::r/keys [router]} request
+                       {{{:keys [name]} :body} :parameters} request
+                       aggregate (aggregate/create-aggregate event-store {:name name})]
                    {:status 201
                     :body (merge
                            aggregate
-                           {:links {:self (str "/aggregate/" (:id aggregate))}})}))}}]])
+                           {:links
+                            {:self (url-for router ::aggregate {:id (:id aggregate)})}})}))}}]])
 
 (defn make-router [dependencies]
   (ring/router
