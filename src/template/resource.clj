@@ -15,13 +15,17 @@
 (require 'hashp.core)
 
 (defn make-routes [{:keys [event-store]}]
-  [["" {:name ::discovery
-        :get {:handler (fn [{::r/keys [router]}]
-                         {:status 200
-                          :body {:links {:self
-                                         (-> router
-                                             (r/match-by-name ::discovery)
-                                             (r/match->path))}}})}}]
+  [["/" {:name ::discovery
+         :get {:handler (fn [{::r/keys [router]}]
+                          {:status 200
+                           :body {:links {:self
+                                          (-> router
+                                              (r/match-by-name ::discovery)
+                                              (r/match->path))
+                                          :events
+                                          (-> router
+                                              (r/match-by-name ::events)
+                                              (r/match->path))}}})}}]
    ["/health"
     {:name ::health
      :get

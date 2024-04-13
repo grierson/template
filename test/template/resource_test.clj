@@ -22,12 +22,13 @@
 (deftest discovery-test
   (let [{:keys [handler]} (extract ds/*system*)
         request (handler {:request-method :get
-                          :uri ""})
+                          :uri "/"})
         resource (request->resource request)]
     (testing "returns 200"
       (is (= 200 (:status request))))
     (testing "contains discovery link"
-      (is (= {:links {:self ""}} resource)))))
+      (is (= {:links {:self "/"
+                      :events "/events"}} resource)))))
 
 (deftest health-test
   (let [{:keys [handler]} (extract ds/*system*)
