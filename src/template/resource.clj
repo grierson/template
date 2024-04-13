@@ -11,7 +11,8 @@
    [template.events :as events]
    [template.projection :as projection]
    [reitit.core :as r]
-   [reitit.impl :as impl]))
+   [reitit.impl :as impl]
+   [halboy.resource :as resource]))
 
 (require 'hashp.core)
 
@@ -26,11 +27,11 @@
 (defn make-routes [{:keys [event-store]}]
   [["/" {:name ::discovery
          :get {:handler (fn [{::r/keys [router]}]
-                          {:status 200
-                           :body {:links {:self (url-for router ::discovery)
-                                          :events (str (url-for router ::events) "{?start,end}")
-                                          :aggregate (url-for router ::aggregate {:id "{id}"})
-                                          :aggregates (url-for router ::aggregates)}}})}}]
+                          (-> (resource/new-resource (url-for router ::discovery))
+                              (resource/add-links
+                               {:events (str (url-for router ::events) "{?start,end}")
+                                :aggregate (url-for router ::aggregate {:id "{id}"})
+                                :aggregates (url-for router ::aggregates)})))}}]
    ["/health"
     {:name ::health
      :get
