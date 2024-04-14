@@ -25,7 +25,7 @@
     :http
     {:handler
      #::ds{:start  (fn [{{:keys [event-store]} ::ds/config}]
-                     (resource/app {:event-store event-store}))
+                     (resource/make-handler {:event-store event-store}))
            :config {:event-store (ds/ref [:components :event-store])}}
 
      :server
@@ -51,7 +51,7 @@
 
 (defmethod ds/named-system :test
   [_]
-  (ds/system ::base {[:env] (env-config :test)
+  (ds/system ::base {[:env] (env-config :development)
                      [:http :server] ::disabled}))
 
 (defmethod ds/named-system :donut.system/repl

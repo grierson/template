@@ -16,23 +16,31 @@
 
 (require 'hashp.core)
 
+(defn base-url
+  [{:keys [scheme headers]}]
+  (let [host (get headers "host")]
+    (str (name scheme) "://" host)))
+
 (defn url-for
-  ([router name] (url-for router name {}))
-  ([router name path-params]
+  ([router request name] (url-for router request name {}))
+  ([router request name path-params]
    (let [match (r/match-by-name router name path-params)
          template (:template match)
-         route (impl/parse template (r/options router))]
-     (impl/path-for route path-params))))
+         route (impl/parse template (r/options router))
+         base (base-url request)
+         path (impl/path-for route path-params)]
+     (str base path))))
 
 (defn make-routes [{:keys [event-store]}]
   [["/" {:name ::discovery
-         :get {:handler (fn [{::r/keys [router]}]
-                          {:status 200
-                           :body (-> (resource/new-resource (url-for router ::discovery))
-                                     (resource/add-links
-                                      {:events (str (url-for router ::events) "{?start,end}")
-                                       :aggregate (url-for router ::aggregate {:id "{id}"})
-                                       :aggregates (url-for router ::aggregates)}))})}}]
+         :get {:handler (fn [request]
+                          (let [{::r/keys [router]} request]
+                            {:status 200
+                             :body (-> (resource/new-resource (url-for router request ::discovery))
+                                       (resource/add-links
+                                        {:events (str (url-for router request ::events) "{?start,end}")
+                                         :aggregate (url-for router request ::aggregate {:id "{id}"})
+                                         :aggregates (url-for router request ::aggregates)}))}))}}]
    ["/health"
     {:name ::health
      :get
@@ -88,4 +96,4 @@
                               rrc/coerce-request-middleware
                               rrc/coerce-response-middleware]}}))
 
-(defn app [dependencies] (ring/ring-handler (make-router dependencies)))
+(defn make-handler [dependencies] (ring/ring-handler (make-router dependencies)))
