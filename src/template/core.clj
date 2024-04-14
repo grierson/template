@@ -6,4 +6,4 @@
 (defn -main
   []
   (println "running...")
-  (ds/start ::system/production))
+  (ds/start ::system/development))

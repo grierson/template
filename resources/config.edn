@@ -1,3 +1,4 @@
 {:webserver
- {:port #profile {:development 8080
+ {:host "0.0.0.0"
+  :port #profile {:development 8080
                   :production 8080}}}

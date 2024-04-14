@@ -21,3 +21,7 @@
 (defn get-by-id [store id]
   (let [aggregate (sql/get-by-id store :projections id jdbc/snake-kebab-opts)]
     (update aggregate :projections/data (fn [x] (json/read-value x json/keyword-keys-object-mapper)))))
+
+(defn projection [store id]
+  (let [aggregate (sql/get-by-id store :projections id jdbc/snake-kebab-opts)]
+    (json/read-value (:projections/data aggregate) json/keyword-keys-object-mapper)))

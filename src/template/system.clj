@@ -6,7 +6,8 @@
    [donut.system.repl :as dsr]
    [ring.adapter.jetty :as rj]
    [template.events :as events]
-   [template.resource :as resource]))
+   [template.resource :as resource]
+   [freeport.core :as freeport]))
 
 (defn env-config
   [profile]
@@ -41,22 +42,23 @@
   [_]
   base-system)
 
-(defmethod ds/named-system :production
+(defmethod ds/named-system ::production
   [_]
   (ds/system ::base {[:env] (env-config :production)}))
 
-(defmethod ds/named-system :development
+(defmethod ds/named-system ::development
   [_]
   (ds/system ::base {[:env] (env-config :development)}))
 
-(defmethod ds/named-system :test
+(defmethod ds/named-system ::test
   [_]
-  (ds/system ::base {[:env] (env-config :development)
-                     [:http :server] ::disabled}))
+  (ds/system ::base {[:env] {:webserver
+                             {:host "0.0.0.0"
+                              :port (freeport/get-free-port!)}}}))
 
 (defmethod ds/named-system :donut.system/repl
   [_]
-  (ds/system :development))
+  (ds/system ::development))
 
 (comment
   (dsr/start)
