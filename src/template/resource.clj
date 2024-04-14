@@ -27,11 +27,12 @@
 (defn make-routes [{:keys [event-store]}]
   [["/" {:name ::discovery
          :get {:handler (fn [{::r/keys [router]}]
-                          (-> (resource/new-resource (url-for router ::discovery))
-                              (resource/add-links
-                               {:events (str (url-for router ::events) "{?start,end}")
-                                :aggregate (url-for router ::aggregate {:id "{id}"})
-                                :aggregates (url-for router ::aggregates)})))}}]
+                          {:status 200
+                           :body (-> (resource/new-resource (url-for router ::discovery))
+                                     (resource/add-links
+                                      {:events (str (url-for router ::events) "{?start,end}")
+                                       :aggregate (url-for router ::aggregate {:id "{id}"})
+                                       :aggregates (url-for router ::aggregates)}))})}}]
    ["/health"
     {:name ::health
      :get
@@ -47,6 +48,7 @@
                             end (+ start 10)}} :query} :parameters}]
                  {:status 200
                   :body (events/get-events event-store start end)})}}]
+
    ["/aggregate/:id"
     {:name ::aggregate
      :get
@@ -55,6 +57,7 @@
                  (let [aggregate (projection/get-by-id event-store id)]
                    {:status 200
                     :body aggregate}))}}]
+
    ["/aggregates"
     {:name ::aggregates
      :get

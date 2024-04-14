@@ -1,4 +1,4 @@
 {:webserver
- {:port #profile {:default 80
-                  :development 80
-                  :production 80}}}
+ {:port #profile {:default 8080
+                  :development 8080
+                  :production 8080}}}

@@ -20,7 +20,7 @@
 
          start
          {:doc "Run locally"
-          :task (shell "clojure -M -m shopping-cart.core")}
+          :task (shell "clojure -M -m template.core")}
 
          docker:build
          {:doc "Build image"

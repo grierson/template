@@ -3,6 +3,7 @@
    [aero.core :as aero]
    [clojure.java.io :as io]
    [donut.system :as ds]
+   [donut.system.repl :as dsr]
    [ring.adapter.jetty :as rj]
    [template.events :as events]
    [template.resource :as resource]))
@@ -41,16 +42,24 @@
   [_]
   base-system)
 
-(defmethod ds/named-system ::production
+(defmethod ds/named-system :production
   [_]
   (ds/system ::base {[:env] (env-config :production)}))
 
-(defmethod ds/named-system ::test
+(defmethod ds/named-system :development
+  [_]
+  (ds/system ::base {[:env] (env-config :development)}))
+
+(defmethod ds/named-system :test
   [_]
   (ds/system ::base {[:env] (env-config :test)
                      [:http :server] ::disabled}))
 
+(defmethod ds/named-system :donut.system/repl
+  [_]
+  (ds/system :development))
 (comment
-  (def system (ds/start ::production))
-  (println (get-in system [::ds/instances :env]))
-  (ds/stop system))
+  (dsr/start)
+  (dsr/stop)
+  ;; REPL
+  (dsr/restart))
