@@ -8,10 +8,9 @@
    [template.events :as events]
    [template.resource :as resource]))
 
-(defn env-config [profile]
-  (aero/read-config
-   (io/resource "config.edn")
-   (when profile {:profile profile})))
+(defn env-config
+  [profile]
+  (aero/read-config (io/resource "config.edn") {:profile profile}))
 
 (def base-system
   {::ds/defs
@@ -58,6 +57,7 @@
 (defmethod ds/named-system :donut.system/repl
   [_]
   (ds/system :development))
+
 (comment
   (dsr/start)
   (dsr/stop)
