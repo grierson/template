@@ -1,21 +1,19 @@
 (ns template.aggregate
   (:require
-   [jsonista.core :as json]
    [template.events :as events]
    [template.projection :as projection]
    [tick.core :as tick]))
 
 (defn aggregate-created-event
-  [{:keys [id stream-id created-at data]
+  [{:keys [id stream-id timestamp data]
     :or {id (random-uuid)
-         created-at (tick/now)
+         timestamp (tick/now)
          stream-id (random-uuid)}}]
   {:id          id
    :type        "aggregate-created"
    :stream-id   stream-id
-   :stream-type "aggregate"
-   :data        (json/write-value-as-string data)
-   :created-at  created-at})
+   :data        data
+   :timestamp  timestamp})
 
 (defmulti apply-event (fn [_ event] (:events/type event)))
 
@@ -35,8 +33,8 @@
         event (aggregate-created-event {:stream-id aggregate-id
                                         :data (merge {:id aggregate-id} data)})
         _ (events/raise store event)
-        projected-aggregate (project-aggregate store aggregate-id)]
+        aggregate (project-aggregate store aggregate-id)]
     (projection/upsert store {:id aggregate-id
                               :type "aggregate"
-                              :data (json/write-value-as-string projected-aggregate)})
-    projected-aggregate))
+                              :data aggregate})
+    aggregate))

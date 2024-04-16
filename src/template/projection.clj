@@ -18,9 +18,7 @@
      ["SELECT * FROM projections LIMIT ?" limit]
      jdbc/snake-kebab-opts))))
 
-(defn get-by-id [store id]
-  (let [aggregate (sql/get-by-id store :projections id jdbc/snake-kebab-opts)]
-    (update aggregate :projections/data (fn [x] (json/read-value x json/keyword-keys-object-mapper)))))
+(defn get-by-id [store id] (sql/get-by-id store :projections id jdbc/snake-kebab-opts))
 
 (defn projection [store id]
   (let [aggregate (sql/get-by-id store :projections id jdbc/snake-kebab-opts)]

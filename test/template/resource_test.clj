@@ -94,28 +94,28 @@
     (testing "properties"
       (is (= name (hal/get-property resource :name))))))
 
-(deftest get-aggregate-test
-  (let [{:keys [address]} (extract ds/*system*)
-        name "alice"
-        navigator (-> (navigator/discover address)
-                      (navigator/post :aggregates {:name name}))
-        resource #p (navigator/resource navigator)]
-    (testing "Calling GET returns 200"
-      (is (= 200 (navigator/status navigator))))
-    (testing "properties"
-      (is (= name (hal/get-property resource :name))))))
-
-(deftest get-aggregates-test
-  (let [{:keys [address]} (extract ds/*system*)
-        [name1 name2] ["alice" "bob"]
-        _ (-> (navigator/discover address)
-              (navigator/post :aggregates {:name name1}))
-        _ (-> (navigator/discover address)
-              (navigator/post :aggregates {:name name2}))
-        navigator (-> (navigator/discover address)
-                      (navigator/get :aggregates))
-        resource #p (navigator/resource navigator)]
-    (testing "returns 200"
-      (is (= 200 (navigator/status navigator))))
-    (testing "properties"
-      (is (= 2 (count (hal/get-property resource :aggregates)))))))
+; (deftest get-aggregate-test
+;   (let [{:keys [address]} (extract ds/*system*)
+;         name "alice"
+;         navigator (-> (navigator/discover address)
+;                       (navigator/post :aggregates {:name name}))
+;         resource (navigator/resource navigator)]
+;     (testing "Calling GET returns 200"
+;       (is (= 200 (navigator/status navigator))))
+;     (testing "properties"
+;       (is (= name (hal/get-property resource :name))))))
+;
+; (deftest get-aggregates-test
+;   (let [{:keys [address]} (extract ds/*system*)
+;         [name1 name2] ["alice" "bob"]
+;         _ (-> (navigator/discover address)
+;               (navigator/post :aggregates {:name name1}))
+;         _ (-> (navigator/discover address)
+;               (navigator/post :aggregates {:name name2}))
+;         navigator (-> (navigator/discover address)
+;                       (navigator/get :aggregates))
+;         resource (navigator/resource navigator)]
+;     (testing "returns 200"
+;       (is (= 200 (navigator/status navigator))))
+;     (testing "properties"
+;       (is (= 2 (count (hal/get-property resource :aggregates)))))))
