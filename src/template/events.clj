@@ -4,7 +4,8 @@
    [next.jdbc :as jdbc]
    [next.jdbc.sql :as sql]
    [next.jdbc.prepare :as prepare]
-   [next.jdbc.result-set :as rs])
+   [next.jdbc.result-set :as rs]
+   [next.jdbc.date-time])
   (:import [java.sql PreparedStatement]
            [org.postgresql.util PGobject]))
 
@@ -92,10 +93,8 @@
     jdbc/snake-kebab-opts)))
 
 (defn get-aggregate-events [store id]
-  (map
-   (fn [e] (update e :events/data (fn [x] (json/read-value x json/keyword-keys-object-mapper))))
-   (sql/query store ["SELECT * FROM events WHERE stream_id = ?" id] jdbc/snake-kebab-opts)))
+  (sql/query store ["SELECT * FROM events WHERE stream_id = ?" id] jdbc/snake-kebab-opts))
 
 (defn raise [store {:keys [id] :as event}]
-  #p (sql/insert! store :events #p event jdbc/snake-kebab-opts)
+  (sql/insert! store :events event jdbc/snake-kebab-opts)
   (sql/get-by-id store :events id))

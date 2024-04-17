@@ -87,7 +87,7 @@
                    {:status 200
                     :body (-> (resource/new-resource self-url)
                               (resource/add-links {:discovery (url-for router request ::discovery)})
-                              (resource/add-property :name (:name aggregate))
+                              (resource/add-properties (:projections/data aggregate))
                               (haljson/resource->json))}))}}]
 
    ["/aggregates"
@@ -100,7 +100,7 @@
                    {:status 200
                     :body (-> (resource/new-resource self-url)
                               (resource/add-links {:discovery (url-for router request ::discovery)})
-                              (resource/add-property :aggregates projections)
+                              (resource/add-property :aggregates (map :projections/data projections))
                               (haljson/resource->json))}))}
      :post
      {:parameters {:body [:map [:name string?]]}
