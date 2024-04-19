@@ -1,99 +1,109 @@
-{:tasks {dev
-         {:doc "Start repl"
-          :task (shell "clojure -M:repl")}
+{:paths ["bb"]
 
-         test
-         {:doc "Run tests"
-          :task (shell "./bin/kaocha")}
+ :deps
+ {org.clojars.lispyclouds/contajners {:mvn/version "1.0.5"}}
 
-         test:watch
-         {:doc "Run tests watch mode"
-          :task (shell "./bin/kaocha --watch")}
+ :tasks
+ {dev
+  {:doc "Start repl"
+   :task (shell "clojure -M:repl")}
 
-         uber:build
-         {:doc "Build uber"
-          :task (shell "clojure -T:build uber")}
+  test:database
+  {:doc "Start test database"
+   :task (shell)}
 
-         uber:run
-         {:doc "Run uber"
-          :task (shell "java -jar target/app-standalone.jar")}
+  test
+  {:doc "Run tests"
+   :task (shell "./bin/kaocha")}
 
-         start
-         {:doc "Run locally"
-          :task (shell "clojure -M -m template.core")}
+  test:watch
+  {:doc "Run tests watch mode"
+   :task (shell "./bin/kaocha --watch")}
 
-         docker:build
-         {:doc "Build image"
-          :task (shell "docker build --tag shopping-cart .")}
+  uber:build
+  {:doc "Build uber"
+   :task (shell "clojure -T:build uber")}
 
-         docker:run
-         {:doc "Run container"
-          :task (shell "docker run --rm -p 5000:80 shopping-cart")}
+  uber:run
+  {:doc "Run uber"
+   :task (shell "java -jar target/app-standalone.jar")}
 
-         infra:plan
-         {:doc "Plan infra"
-          :task (shell {:dir "infra"} "terraform plan")}
+  start
+  {:doc "Run locally"
+   :task (shell "clojure -M -m template.core")}
 
-         infra:apply
-         {:doc "Apply infra"
-          :task (shell {:dir "infra"} "terraform apply")}
+  docker:build
+  {:doc "Build image"
+   :task (shell "docker build --tag shopping-cart .")}
 
-         infra:destroy
-         {:doc "Destroy infra"
-          :task (shell {:dir "infra"} "terraform destroy")}
+  docker:run
+  {:doc "Run container"
+   :task (shell "docker run --rm -p 5000:80 shopping-cart")}
 
-         infra:name
-         {:doc "Get name"
-          :requires ([cheshire.core :as json])
-          :task (-> (shell {:dir "infra" :out :string} "terraform output -raw name")
-                    :out)}
+  infra:plan
+  {:doc "Plan infra"
+   :task (shell {:dir "infra"} "terraform plan")}
 
-         acr:login
-         {:doc "Login to ACR"
-          :requires ([cheshire.core :as json])
-          :depends [infra:name]
-          :task (let [login-cmd (format "az acr credential show --name %s" infra:name)
-                      result (-> (shell {:out :string} login-cmd)
-                                 :out
-                                 (json/parse-string true))
-                      username (:username result)
-                      password (get-in result [:passwords 0 :value])
-                      host (-> (shell {:dir "infra" :out :string} "terraform output -raw registry_hostname")
-                               :out)]
-                  (shell (format "docker login %s --username %s --password %s" host username password)))}
+  infra:apply
+  {:doc "Apply infra"
+   :task (shell {:dir "infra"} "terraform apply")}
 
-         acr:build
-         {:doc "Tag image for ACR"
-          :depends [docker:build]
-          :requires ([cheshire.core :as json])
-          :task (let [host (-> (shell {:dir "infra" :out :string} "terraform output -raw registry_hostname")
-                               :out)]
-                  (shell (format "docker tag shopping-cart:latest %s/shopping-cart:latest" host)))}
+  infra:destroy
+  {:doc "Destroy infra"
+   :task (shell {:dir "infra"} "terraform destroy")}
 
-         acr:push
-         {:doc "Push image to ACR"
-          :depends [acr:build]
-          :requires ([cheshire.core :as json])
-          :task (let [host (-> (shell {:dir "infra" :out :string} "terraform output -raw registry_hostname")
-                               :out)]
-                  (shell (format "docker push %s/shopping-cart:latest" host)))}
+  infra:name
+  {:doc "Get name"
+   :requires ([cheshire.core :as json])
+   :task (-> (shell {:dir "infra" :out :string} "terraform output -raw name")
+             :out)}
 
-         k8:connect
-         {:doc "Add Azure k8 to kubectl"
-          :depends [infra:name]
-          :task (shell (format "az aks get-credentials --resource-group %s --name %s" infra:name infra:name))}
+  acr:login
+  {:doc "Login to ACR"
+   :requires ([cheshire.core :as json])
+   :depends [infra:name]
+   :task (let [login-cmd (format "az acr credential show --name %s" infra:name)
+               result (-> (shell {:out :string} login-cmd)
+                          :out
+                          (json/parse-string true))
+               username (:username result)
+               password (get-in result [:passwords 0 :value])
+               host (-> (shell {:dir "infra" :out :string} "terraform output -raw registry_hostname")
+                        :out)]
+           (shell (format "docker login %s --username %s --password %s" host username password)))}
 
-         k8:apply
-         {:doc "Run k8"
-          :task (shell "kubectl apply -f manifests/")}
+  acr:build
+  {:doc "Tag image for ACR"
+   :depends [docker:build]
+   :requires ([cheshire.core :as json])
+   :task (let [host (-> (shell {:dir "infra" :out :string} "terraform output -raw registry_hostname")
+                        :out)]
+           (shell (format "docker tag shopping-cart:latest %s/shopping-cart:latest" host)))}
 
-         k8:delete
-         {:doc "Stop k8"
-          :task (shell "kubectl delete -f manifests/")}
+  acr:push
+  {:doc "Push image to ACR"
+   :depends [acr:build]
+   :requires ([cheshire.core :as json])
+   :task (let [host (-> (shell {:dir "infra" :out :string} "terraform output -raw registry_hostname")
+                        :out)]
+           (shell (format "docker push %s/shopping-cart:latest" host)))}
 
-         k8:show
-         {:doc "Show k8 details"
-          :task (do
-                  (shell "kubectl get pods")
-                  (shell "kubectl get deployments")
-                  (shell "kubectl get services"))}}}
+  k8:connect
+  {:doc "Add Azure k8 to kubectl"
+   :depends [infra:name]
+   :task (shell (format "az aks get-credentials --resource-group %s --name %s" infra:name infra:name))}
+
+  k8:apply
+  {:doc "Run k8"
+   :task (shell "kubectl apply -f manifests/")}
+
+  k8:delete
+  {:doc "Stop k8"
+   :task (shell "kubectl delete -f manifests/")}
+
+  k8:show
+  {:doc "Show k8 details"
+   :task (do
+           (shell "kubectl get pods")
+           (shell "kubectl get deployments")
+           (shell "kubectl get services"))}}}
