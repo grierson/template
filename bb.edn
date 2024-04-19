@@ -4,9 +4,13 @@
  {org.clojars.lispyclouds/contajners {:mvn/version "1.0.5"}}
 
  :tasks
- {dev
+ {clj:repl
   {:doc "Start repl"
    :task (shell "clojure -M:repl")}
+
+  bb:repl
+  {:doc "bb nrepl server"
+   :task (shell "bb nrepl-server")}
 
   test:database
   {:doc "Start test database"
