@@ -14,7 +14,7 @@
 
   test:database
   {:doc "Start test database"
-   :task (shell)}
+   :task (shell "docker run -e POSTGRES_PASSWORD=postgres -p 5432:5432 -d postgres")}
 
   test
   {:doc "Run tests"

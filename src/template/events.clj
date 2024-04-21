@@ -79,6 +79,9 @@
       data jsonb NOT NULL)"])
     store))
 
+(comment
+  (make-store))
+
 (defn kill-store [store]
   (jdbc/execute! store ["DROP TABLE events"])
   (jdbc/execute! store ["DROP TABLE projections"]))
