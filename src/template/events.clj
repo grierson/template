@@ -56,12 +56,24 @@
   (read-column-by-index [^org.postgresql.util.PGobject v _2 _3]
     (<-pgobject v)))
 
-(defn make-store []
-  (let [db {:dbtype "postgresql"
-            :dbname "postgres"
-            :user "postgres"
-            :password "postgres"}
-        store (jdbc/get-datasource db)]
+(comment
+  (let [store (jdbc/get-datasource {:dbtype "postgresql"
+                                    :dbname "postgres"
+                                    :user "postgres"
+                                    :password "postgres"})]
+    (jdbc/execute!
+     store
+     ["create table if not exists events (
+      id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+      position SERIAL,
+      type varchar NOT NULL,
+      stream_id UUID NOT NULL,
+      data jsonb NOT NULL,
+      timestamp TIMESTAMP default now() NOT NULL)"])
+    store))
+
+(defn make-store [db-spec]
+  (let [store (jdbc/get-datasource db-spec)]
     (jdbc/execute!
      store
      ["create table if not exists events (
@@ -80,7 +92,7 @@
     store))
 
 (comment
-  (make-store))
+  (make-store {}))
 
 (defn kill-store [store]
   (jdbc/execute! store ["DROP TABLE events"])

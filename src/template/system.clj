@@ -7,7 +7,8 @@
    [ring.adapter.jetty :as rj]
    [template.events :as events]
    [template.resource :as resource]
-   [freeport.core :as freeport]))
+   [freeport.core :as freeport]
+   [clj-test-containers.core :as tc]))
 
 (defn env-config
   [profile]
@@ -19,9 +20,14 @@
 
     :components
     {:event-store
-     #::ds{:start (fn [_] (events/make-store))
+     #::ds{:start (fn [{:keys [::ds/config]}]
+                    (events/make-store config))
            :stop (fn [{:keys [::ds/instance]}]
-                   (events/kill-store instance))}}
+                   (events/kill-store instance))
+           :config {:dbtype "postgresql"
+                    :dbname "postgres"
+                    :user "postgres"
+                    :password "postgres"}}}
 
     :http
     {:handler
@@ -50,11 +56,20 @@
   [_]
   (ds/system ::base {[:env] (env-config :development)}))
 
+(defn make-testcontainer-postgres []
+  (let [container (-> (tc/create {:image-name "postgres:latest"
+                                  :exposed-ports [5432]
+                                  :env-vars {"POSTGRES_PASSWORD" "postgres"}}))]
+    container))
+
 (defmethod ds/named-system ::test
   [_]
   (ds/system ::base {[:env] {:webserver
                              {:host "0.0.0.0"
-                              :port (freeport/get-free-port!)}}}))
+                              :port (freeport/get-free-port!)}
+
+                             :database
+                             (make-testcontainer-postgres)}}))
 
 (defmethod ds/named-system :donut.system/repl
   [_]
@@ -65,3 +80,9 @@
   (dsr/stop)
   ;; REPL
   (dsr/restart))
+
+(comment
+  (def container (make-testcontainer-postgres))
+  #p (tc/start! container)
+  (tc/stop! container))
+
