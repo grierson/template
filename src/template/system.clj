@@ -24,10 +24,7 @@
                     (events/make-store config))
            :stop (fn [{:keys [::ds/instance]}]
                    (events/kill-store instance))
-           :config {:dbtype "postgresql"
-                    :dbname "postgres"
-                    :user "postgres"
-                    :password "postgres"}}}
+           :config  (ds/ref [:env :database])}}
 
     :http
     {:handler
@@ -57,19 +54,24 @@
   (ds/system ::base {[:env] (env-config :development)}))
 
 (defn make-testcontainer-postgres []
-  (let [container (-> (tc/create {:image-name "postgres:latest"
-                                  :exposed-ports [5432]
-                                  :env-vars {"POSTGRES_PASSWORD" "postgres"}}))]
-    container))
+  (tc/start! (tc/create {:image-name "postgres:latest"
+                         :env-vars {"POSTGRES_PASSWORD" "postgres"}
+                         :exposed-ports [5432]
+                         :wait-for      {:wait-strategy   :log
+                                         :message         "accept connections"
+                                         :startup-timeout 100}})))
 
 (defmethod ds/named-system ::test
   [_]
-  (ds/system ::base {[:env] {:webserver
-                             {:host "0.0.0.0"
-                              :port (freeport/get-free-port!)}
-
-                             :database
-                             (make-testcontainer-postgres)}}))
+  (let [container (make-testcontainer-postgres)
+        webserver {:webserver {:port (freeport/get-free-port!)}}
+        database {:database {:port (get (:mapped-ports container) 5432)}}
+        env-config (merge-with into
+                               (env-config :development)
+                               webserver
+                               database)
+        config {[:env] env-config}]
+    (ds/system ::base config)))
 
 (defmethod ds/named-system :donut.system/repl
   [_]
@@ -83,6 +85,11 @@
 
 (comment
   (def container (make-testcontainer-postgres))
-  #p (tc/start! container)
+  (def store (events/make-store {:dbtype "postgresql"
+                                 :dbname "postgres"
+                                 :user "postgres"
+                                 :password "postgres"
+                                 :port (get (:mapped-ports container) 5432)}))
+  (events/get-events store)
   (tc/stop! container))
 

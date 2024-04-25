@@ -56,26 +56,11 @@
   (read-column-by-index [^org.postgresql.util.PGobject v _2 _3]
     (<-pgobject v)))
 
-(comment
-  (let [store (jdbc/get-datasource {:dbtype "postgresql"
-                                    :dbname "postgres"
-                                    :user "postgres"
-                                    :password "postgres"})]
-    (jdbc/execute!
-     store
-     ["create table if not exists events (
-      id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
-      position SERIAL,
-      type varchar NOT NULL,
-      stream_id UUID NOT NULL,
-      data jsonb NOT NULL,
-      timestamp TIMESTAMP default now() NOT NULL)"])
-    store))
-
 (defn make-store [db-spec]
-  (let [store (jdbc/get-datasource db-spec)]
+  (let [datasource #p (jdbc/get-datasource #p db-spec)]
+    (println "I run")
     (jdbc/execute!
-     store
+     datasource
      ["create table if not exists events (
       id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
       position SERIAL,
@@ -83,13 +68,15 @@
       stream_id UUID NOT NULL,
       data jsonb NOT NULL,
       timestamp TIMESTAMP default now() NOT NULL)"])
+    (println "I dont run")
     (jdbc/execute!
-     store
+     datasource
      ["create table if not exists projections (
       id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
       type varchar NOT NULL,
       data jsonb NOT NULL)"])
-    store))
+    (println "do I run fater")
+    datasource))
 
 (comment
   (make-store {}))
@@ -102,6 +89,7 @@
   ([store]
    (get-events store 1 10))
   ([store start end]
+   (println "I dont")
    (sql/query
     store
     ["SELECT * FROM events WHERE position BETWEEN ? AND ?" start end]

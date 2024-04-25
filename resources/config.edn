@@ -1,4 +1,13 @@
-{:webserver
- {:host "0.0.0.0"
+{:database
+ {:image "postgres:latest"
+  :dbtype "postgresql"
+  :dbname "postgres"
+  :username "postgres"
+  :password "postgres"
+  :host "localhost"
+  :port 5432}
+
+ :webserver
+ {:host "localhost"
   :port #profile {:development 8080
                   :production 8080}}}
