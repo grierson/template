@@ -25,7 +25,7 @@
 (defn make-projection [events] (reduce apply-event {} events))
 
 (defn project [database id]
-  (make-projection (audit/get-projection database id)))
+  (make-projection (audit/get-aggregate-events database id)))
 
 (defn create-aggregate [database data]
   (let [aggregate-id (random-uuid)
