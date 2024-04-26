@@ -1,15 +1,69 @@
 (ns template.resource-test
   (:require
+   [clj-test-containers.core :as tc]
    [clojure.test :refer [deftest is testing use-fixtures]]
    [donut.system :as ds]
-   [template.system :as system]
+   [freeport.core :as freeport]
    [halboy.navigator :as navigator]
    [halboy.resource :as hal]
-   [placid-fish.core :as uris]))
+   [placid-fish.core :as uris]
+   [template.events :as events]
+   [template.system :as system :refer [env-config]]))
 
 (require 'hashp.core)
 
-(use-fixtures :each (ds/system-fixture ::system/test))
+(defn make-testcontainer-postgres []
+  (let [test-container (tc/create {:image-name "postgres:latest"
+                                   :env-vars {"POSTGRES_PASSWORD" "postgres"}
+                                   :exposed-ports [5432]
+                                   :wait-for      {:wait-strategy   :log
+                                                   :message         "accept connections"
+                                                   :startup-timeout 100}})]
+    (tc/start! test-container)))
+
+(comment
+  (def container (make-testcontainer-postgres))
+  (def store (events/make-store {:dbtype "postgresql"
+                                 :dbname "postgres"
+                                 :user "postgres"
+                                 :password "postgres"
+                                 :port (get (:mapped-ports container) 5432)}))
+  (events/get-events store)
+  (tc/stop! container))
+
+(def test-system (atom nil))
+
+(use-fixtures
+  :once
+  (fn [f]
+    (let [postgres (make-testcontainer-postgres)
+          _ (Thread/sleep 1000)
+          db-port (get (:mapped-ports postgres) 5432)
+          ds (events/get-datasource {:dbtype   "postgresql"
+                                     :dbname   "postgres"
+                                     :user     "postgres"
+                                     :password "postgres"
+                                     :port     db-port})
+          _ (events/make-store ds)
+          webserver {:webserver {:host "0.0.0.0"
+                                 :port (freeport/get-free-port!)}}
+          database {:database {:port db-port}}
+          env-overrides (merge-with into
+                                    (env-config :development)
+                                    webserver
+                                    database)
+          config {[:env] env-overrides}
+          system (ds/start ::system/test config)
+          _ (reset! test-system system)]
+      (f)
+      (ds/stop system)
+      (tc/stop! postgres))))
+
+(use-fixtures :each
+  (fn [f]
+    (f)
+    (let [event-store (get-in @test-system [::ds/instances :components :event-store])]
+      (events/clear-store event-store))))
 
 (defn extract [system]
   (let [host (get-in system [::ds/instances :env :webserver :host])
@@ -19,7 +73,7 @@
      :event-store (get-in system [::ds/instances :components :event-store])}))
 
 (deftest discovery-test
-  (let [{:keys [address]} (extract ds/*system*)
+  (let [{:keys [address]} (extract @test-system)
         navigator (navigator/discover address)
         resource (navigator/resource navigator)]
 
@@ -49,7 +103,7 @@
         (is (uris/ends-with? aggregates-href "/aggregates"))))))
 
 (deftest health-test
-  (let [{:keys [address]} (extract ds/*system*)
+  (let [{:keys [address]} (extract @test-system)
         navigator (-> (navigator/discover address)
                       (navigator/get :health))
         resource (navigator/resource navigator)]
@@ -72,7 +126,7 @@
         (is (= "healthy" status))))))
 
 (deftest events-test
-  (let [{:keys [address]} (extract ds/*system*)
+  (let [{:keys [address]} (extract @test-system)
         navigator (-> (navigator/discover address)
                       (navigator/get :events))
         resource (navigator/resource navigator)]
@@ -84,7 +138,7 @@
       (is (= 0 (count (hal/get-property resource :events)))))))
 
 (deftest post-aggregates-test
-  (let [{:keys [address]} (extract ds/*system*)
+  (let [{:keys [address]} (extract @test-system)
         name "alice"
         navigator (-> (navigator/discover address {:follow-redirects false})
                       (navigator/post :aggregates {:name name}))
@@ -95,7 +149,7 @@
       (is (= name (hal/get-property resource :name))))))
 
 (deftest get-aggregate-test
-  (let [{:keys [address]} (extract ds/*system*)
+  (let [{:keys [address]} (extract @test-system)
         name "alice"
         navigator (-> (navigator/discover address)
                       (navigator/post :aggregates {:name name}))
@@ -106,7 +160,7 @@
       (is (= name (hal/get-property resource :name))))))
 
 (deftest get-aggregates-test
-  (let [{:keys [address]} (extract ds/*system*)
+  (let [{:keys [address]} (extract @test-system)
         [name1 name2] ["alice" "bob"]
         _ (-> (navigator/discover address)
               (navigator/post :aggregates {:name name1}))

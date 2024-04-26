@@ -56,40 +56,37 @@
   (read-column-by-index [^org.postgresql.util.PGobject v _2 _3]
     (<-pgobject v)))
 
-(defn make-store [db-spec]
-  (let [datasource #p (jdbc/get-datasource #p db-spec)]
-    (println "I run")
-    (jdbc/execute!
-     datasource
-     ["create table if not exists events (
+(defn get-datasource [db-spec] (jdbc/get-datasource db-spec))
+
+(defn make-store [datasource]
+  (jdbc/execute!
+   datasource
+   ["create table if not exists events (
       id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
       position SERIAL,
       type varchar NOT NULL,
       stream_id UUID NOT NULL,
       data jsonb NOT NULL,
       timestamp TIMESTAMP default now() NOT NULL)"])
-    (println "I dont run")
-    (jdbc/execute!
-     datasource
-     ["create table if not exists projections (
+  (jdbc/execute!
+   datasource
+   ["create table if not exists projections (
       id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
       type varchar NOT NULL,
       data jsonb NOT NULL)"])
-    (println "do I run fater")
-    datasource))
+  datasource)
 
 (comment
   (make-store {}))
 
-(defn kill-store [store]
-  (jdbc/execute! store ["DROP TABLE events"])
-  (jdbc/execute! store ["DROP TABLE projections"]))
+(defn clear-store [store]
+  (jdbc/execute! store ["TRUNCATE TABLE events"])
+  (jdbc/execute! store ["TRUNCATE TABLE projections"]))
 
 (defn get-events
   ([store]
    (get-events store 1 10))
   ([store start end]
-   (println "I dont")
    (sql/query
     store
     ["SELECT * FROM events WHERE position BETWEEN ? AND ?" start end]

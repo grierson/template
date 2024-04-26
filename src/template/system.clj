@@ -7,8 +7,7 @@
    [ring.adapter.jetty :as rj]
    [template.events :as events]
    [template.resource :as resource]
-   [freeport.core :as freeport]
-   [clj-test-containers.core :as tc]))
+   [freeport.core :as freeport]))
 
 (defn env-config
   [profile]
@@ -21,9 +20,7 @@
     :components
     {:event-store
      #::ds{:start (fn [{:keys [::ds/config]}]
-                    (events/make-store config))
-           :stop (fn [{:keys [::ds/instance]}]
-                   (events/kill-store instance))
+                    (events/get-datasource config))
            :config  (ds/ref [:env :database])}}
 
     :http
@@ -53,23 +50,12 @@
   [_]
   (ds/system ::base {[:env] (env-config :development)}))
 
-(defn make-testcontainer-postgres []
-  (tc/start! (tc/create {:image-name "postgres:latest"
-                         :env-vars {"POSTGRES_PASSWORD" "postgres"}
-                         :exposed-ports [5432]
-                         :wait-for      {:wait-strategy   :log
-                                         :message         "accept connections"
-                                         :startup-timeout 100}})))
-
 (defmethod ds/named-system ::test
   [_]
-  (let [container (make-testcontainer-postgres)
-        webserver {:webserver {:port (freeport/get-free-port!)}}
-        database {:database {:port (get (:mapped-ports container) 5432)}}
+  (let [webserver {:webserver {:port (freeport/get-free-port!)}}
         env-config (merge-with into
                                (env-config :development)
-                               webserver
-                               database)
+                               webserver)
         config {[:env] env-config}]
     (ds/system ::base config)))
 
@@ -82,14 +68,3 @@
   (dsr/stop)
   ;; REPL
   (dsr/restart))
-
-(comment
-  (def container (make-testcontainer-postgres))
-  (def store (events/make-store {:dbtype "postgresql"
-                                 :dbname "postgres"
-                                 :user "postgres"
-                                 :password "postgres"
-                                 :port (get (:mapped-ports container) 5432)}))
-  (events/get-events store)
-  (tc/stop! container))
-
