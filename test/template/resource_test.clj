@@ -8,9 +8,8 @@
    [halboy.resource :as hal]
    [next.jdbc :as jdbc]
    [placid-fish.core :as uris]
-   [template.events :as events]
-   [template.system :as system :refer [env-config]]
-   [template.projection :as projection]))
+   [template.audit :as audit]
+   [template.system :as system :refer [env-config]]))
 
 (require 'hashp.core)
 
@@ -40,8 +39,7 @@
 
           db-spec (merge database {:port postgres-container-port})
           datasource (jdbc/get-datasource db-spec)
-          _ (events/make-table datasource)
-          _ (projection/make-table datasource)
+          _ (audit/make-tables datasource)
 
           webserver {:webserver {:port (freeport/get-free-port!)}}
 
@@ -115,12 +113,12 @@
       (is (= 200 (navigator/status navigator))))
 
     (testing "has self link"
-      (let [self-href #p (hal/get-href resource :self)]
+      (let [self-href (hal/get-href resource :self)]
         (is (uris/absolute? self-href))
         (is (uris/ends-with? self-href "/health"))))
 
     (testing "has discovery link"
-      (let [discovery-href #p (hal/get-href resource :discovery)]
+      (let [discovery-href (hal/get-href resource :discovery)]
         (is (uris/absolute? discovery-href))
         (is (uris/ends-with? discovery-href "/"))))
 
@@ -145,7 +143,7 @@
         name "alice"
         navigator (-> (navigator/discover address {:follow-redirects false})
                       (navigator/post :aggregates {:name name}))
-        resource (navigator/resource navigator)]
+        resource  (navigator/resource navigator)]
     (testing "Calling POST returns 201"
       (is (= 201 (navigator/status navigator))))
     (testing "properties"

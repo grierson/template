@@ -1,10 +1,10 @@
-(ns template.events
+(ns template.audit
   (:require [next.jdbc :as jdbc]
             [next.jdbc.sql :as sql]
             [next.jdbc.date-time]
             [template.database.postgres]))
 
-(defn make-table [database]
+(defn make-tables [database]
   (jdbc/execute!
    database
    ["create table if not exists events (
@@ -14,6 +14,12 @@
       stream_id UUID NOT NULL,
       data jsonb NOT NULL,
       timestamp TIMESTAMP default now() NOT NULL)"])
+  (jdbc/execute!
+   database
+   ["create table if not exists projections (
+      id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+      type varchar NOT NULL,
+      data jsonb NOT NULL)"])
   database)
 
 (defn get-events
@@ -31,3 +37,17 @@
 (defn raise [database {:keys [id] :as event}]
   (sql/insert! database :events event jdbc/snake-kebab-opts)
   (sql/get-by-id database :events id))
+
+(defn upsert [database projection]
+  (sql/insert! database :projections projection jdbc/snake-kebab-opts))
+
+(defn get-projections
+  ([database] (get-projections database 10))
+  ([database limit]
+   (sql/query database ["SELECT * FROM projections LIMIT ?" limit] jdbc/snake-kebab-opts)))
+
+(defn get-projection [database id]
+  (sql/get-by-id database :projections id jdbc/snake-kebab-opts))
+
+
+

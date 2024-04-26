@@ -1,7 +1,7 @@
-(ns template.aggregate
-  (:require [template.events :as events]
-            [template.projection :as projection]
-            [tick.core :as tick]))
+(ns template.aggregate.projection
+  (:require [template.audit :as audit]
+            [tick.core :as tick]
+            [template.database.postgres]))
 
 (defn aggregate-created-event
   [{:keys [id stream-id timestamp data]
@@ -12,7 +12,7 @@
    :type        "aggregate-created"
    :stream-id   stream-id
    :data        data
-   :timestamp  timestamp})
+   :timestamp   timestamp})
 
 (defmulti apply-event (fn [_ event] (:events/type event)))
 
@@ -22,18 +22,18 @@
   [state event]
   (merge state (:events/data event)))
 
-(defn project [events] (reduce apply-event {} events))
+(defn make-projection [events] (reduce apply-event {} events))
 
-(defn project-aggregate [database id]
-  (project (events/get-aggregate-events database id)))
+(defn project [database id]
+  (make-projection (audit/get-projection database id)))
 
 (defn create-aggregate [database data]
   (let [aggregate-id (random-uuid)
         event (aggregate-created-event {:stream-id aggregate-id
                                         :data (merge {:id aggregate-id} data)})
-        _ (events/raise database event)
-        aggregate (project-aggregate database aggregate-id)]
-    (projection/upsert database {:id aggregate-id
-                                 :type "aggregate"
-                                 :data aggregate})
+        _ (audit/raise database event)
+        aggregate (project database aggregate-id)]
+    (audit/upsert database {:id aggregate-id
+                            :type "aggregate"
+                            :data aggregate})
     aggregate))

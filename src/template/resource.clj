@@ -1,6 +1,6 @@
 (ns template.resource
   (:require
-   [template.resources.aggregate :as aggregate-resource]
+   [template.aggregate.route :as aggregate]
    [muuntaja.core :as m]
    [reitit.coercion.malli :as mcoercion]
    [reitit.ring :as ring]
@@ -9,15 +9,14 @@
    [reitit.ring.middleware.parameters :as parameters]
    [template.resources.discovery :as discovery]
    [template.resources.health :as health]
-   [template.resources.events :as events-resource]
-   [template.resources.aggregates :as aggregates-resource]))
+   [template.resources.events :as events-resource]))
 
 (defn make-routes [dependencies]
   [discovery/route
    health/route
    (events-resource/route dependencies)
-   (aggregate-resource/route dependencies)
-   (aggregates-resource/route dependencies)])
+   (aggregate/aggregate-route dependencies)
+   (aggregate/aggregates-route dependencies)])
 
 (defn make-router [routes]
   (ring/router

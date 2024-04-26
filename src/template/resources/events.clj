@@ -4,7 +4,7 @@
    [halboy.resource :as resource]
    [malli.experimental.lite :as l]
    [reitit.core :as reitit]
-   [template.events :as events]
+   [template.audit :as audit]
    [template.resources.urls :as urls]))
 
 (defn get-handler [{:keys [database]} request]
@@ -13,7 +13,7 @@
         {{{:keys [start end]
            :or {start 0
                 end (+ start 10)}} :query} :parameters} request
-        events (events/get-events database start end)]
+        events (audit/get-events database start end)]
     {:status 200
      :body (-> (resource/new-resource self-url)
                (resource/add-links {:discovery (urls/url-for router request :discovery)})
