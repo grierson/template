@@ -6,7 +6,7 @@
    [template.projection :as projection]
    [template.resources.urls :as urls]))
 
-(defn get-handler [database request]
+(defn get-handler [{:keys [database]} request]
   (let [{::reitit/keys [router]} request
         {{{:keys [id]} :path} :parameters} request
         aggregate (projection/projection database id)
@@ -16,3 +16,10 @@
                (resource/add-links {:discovery (urls/url-for router request :discovery)})
                (resource/add-properties (:projections/data aggregate))
                (haljson/resource->json))}))
+
+(defn route [dependencies]
+  ["/aggregate/:id"
+   {:name :aggregate
+    :get
+    {:parameters {:path {:id uuid?}}
+     :handler (partial get-handler dependencies)}}])

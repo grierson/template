@@ -5,7 +5,7 @@
    [reitit.core :as reitit]
    [template.resources.urls :as urls]))
 
-(defn handler [request]
+(defn get-handler [request]
   (let [{::reitit/keys [router]} request
         self-url (urls/url-for router request :health)]
     {:status 200
@@ -13,3 +13,7 @@
                (resource/add-links {:discovery (urls/url-for router request :discovery)})
                (resource/add-property :status "healthy")
                (haljson/resource->json))}))
+
+(def route ["/health"
+            {:name :health
+             :get {:handler get-handler}}])
