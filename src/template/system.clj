@@ -1,33 +1,34 @@
 (ns template.system
-  (:require
-   [aero.core :as aero]
-   [clojure.java.io :as io]
-   [donut.system :as ds]
-   [donut.system.repl :as dsr]
-   [ring.adapter.jetty :as rj]
-   [template.events :as events]
-   [template.resource :as resource]
-   [freeport.core :as freeport]))
+  (:require [aero.core :as aero]
+            [clojure.java.io :as io]
+            [donut.system :as ds]
+            [donut.system.repl :as dsr]
+            [freeport.core :as freeport]
+            [next.jdbc :as jdbc]
+            [ring.adapter.jetty :as rj]
+            [template.resource :as resource]))
 
 (defn env-config
   [profile]
-  (aero/read-config (io/resource "config.edn") {:profile profile}))
+  (aero/read-config
+   (io/resource "config.edn")
+   {:profile profile}))
 
 (def base-system
   {::ds/defs
    {:env {}
 
     :components
-    {:event-store
+    {:database
      #::ds{:start (fn [{:keys [::ds/config]}]
-                    (events/get-datasource config))
+                    (jdbc/get-datasource config))
            :config  (ds/ref [:env :database])}}
 
     :http
     {:handler
-     #::ds{:start  (fn [{{:keys [event-store]} ::ds/config}]
-                     (resource/make-handler {:event-store event-store}))
-           :config {:event-store (ds/ref [:components :event-store])}}
+     #::ds{:start  (fn [{{:keys [database]} ::ds/config}]
+                     (resource/make-handler {:database database}))
+           :config {:database (ds/ref [:components :database])}}
 
      :server
      #::ds{:start (fn [{{:keys [handler options]} ::ds/config}]

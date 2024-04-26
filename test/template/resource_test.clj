@@ -6,71 +6,74 @@
    [freeport.core :as freeport]
    [halboy.navigator :as navigator]
    [halboy.resource :as hal]
+   [next.jdbc :as jdbc]
    [placid-fish.core :as uris]
    [template.events :as events]
-   [template.system :as system :refer [env-config]]))
+   [template.system :as system :refer [env-config]]
+   [template.projection :as projection]))
 
 (require 'hashp.core)
 
-(defn make-testcontainer-postgres []
-  (let [test-container (tc/create {:image-name "postgres:latest"
-                                   :env-vars {"POSTGRES_PASSWORD" "postgres"}
-                                   :exposed-ports [5432]
+(defn make-postgres-testcontainer [{:keys [image password port]}]
+  (let [test-container (tc/create {:image-name image
+                                   :env-vars {"POSTGRES_PASSWORD" password}
+                                   :exposed-ports [port]
                                    :wait-for      {:wait-strategy   :log
                                                    :message         "accept connections"
-                                                   :startup-timeout 100}})]
+                                                   :times           2
+                                                   :startup-timeout 10}})]
     (tc/start! test-container)))
-
-(comment
-  (def container (make-testcontainer-postgres))
-  (def store (events/make-store {:dbtype "postgresql"
-                                 :dbname "postgres"
-                                 :user "postgres"
-                                 :password "postgres"
-                                 :port (get (:mapped-ports container) 5432)}))
-  (events/get-events store)
-  (tc/stop! container))
 
 (def test-system (atom nil))
 
 (use-fixtures
   :once
-  (fn [f]
-    (let [postgres (make-testcontainer-postgres)
-          _ (Thread/sleep 1000)
-          db-port (get (:mapped-ports postgres) 5432)
-          ds (events/get-datasource {:dbtype   "postgresql"
-                                     :dbname   "postgres"
-                                     :user     "postgres"
-                                     :password "postgres"
-                                     :port     db-port})
-          _ (events/make-store ds)
-          webserver {:webserver {:host "0.0.0.0"
-                                 :port (freeport/get-free-port!)}}
-          database {:database {:port db-port}}
-          env-overrides (merge-with into
-                                    (env-config :development)
-                                    webserver
-                                    database)
-          config {[:env] env-overrides}
+  (fn [tests]
+    (let [{:keys [database] :as env} (env-config :development)
+
+          postgres-container
+          (make-postgres-testcontainer
+           (select-keys database [:image :password :port]))
+
+          postgres-container-port
+          (get (:mapped-ports postgres-container) (:port database))
+
+          db-spec (merge database {:port postgres-container-port})
+          datasource (jdbc/get-datasource db-spec)
+          _ (events/make-table datasource)
+          _ (projection/make-table datasource)
+
+          webserver {:webserver {:port (freeport/get-free-port!)}}
+
+          database {:database {:port postgres-container-port}}
+
+          system-overrides (merge-with into
+                                       env
+                                       webserver
+                                       database)
+          config {[:env] system-overrides}
           system (ds/start ::system/test config)
           _ (reset! test-system system)]
-      (f)
+      (tests)
       (ds/stop system)
-      (tc/stop! postgres))))
+      (tc/stop! postgres-container))))
+
+(defn clear-tables [store]
+  (jdbc/execute! store ["TRUNCATE TABLE events"])
+  (jdbc/execute! store ["TRUNCATE TABLE projections"]))
 
 (use-fixtures :each
-  (fn [f]
-    (f)
-    (let [event-store (get-in @test-system [::ds/instances :components :event-store])]
-      (events/clear-store event-store))))
+  (fn [test]
+    (test)
+    (let [database (get-in @test-system [::ds/instances :components :database])]
+      (clear-tables database))))
 
 (defn extract [system]
   (let [host (get-in system [::ds/instances :env :webserver :host])
         port (get-in system [::ds/instances :env :webserver :port])]
     {:address (str "http://" host ":" port)
      :handler (get-in system [::ds/instances :http :handler])
-     :event-store (get-in system [::ds/instances :components :event-store])}))
+     :database (get-in system [::ds/instances :components :database])}))
 
 (deftest discovery-test
   (let [{:keys [address]} (extract @test-system)
@@ -112,14 +115,14 @@
       (is (= 200 (navigator/status navigator))))
 
     (testing "has self link"
-      (let [self-href (hal/get-href resource :self)]
+      (let [self-href #p (hal/get-href resource :self)]
         (is (uris/absolute? self-href))
         (is (uris/ends-with? self-href "/health"))))
 
     (testing "has discovery link"
-      (let [self-href (hal/get-href resource :discovery)]
-        (is (uris/absolute? self-href))
-        (is (uris/ends-with? self-href "/"))))
+      (let [discovery-href #p (hal/get-href resource :discovery)]
+        (is (uris/absolute? discovery-href))
+        (is (uris/ends-with? discovery-href "/"))))
 
     (testing "has health property"
       (let [status (hal/get-property resource :status)]

@@ -1,8 +1,7 @@
 (ns template.aggregate
-  (:require
-   [template.events :as events]
-   [template.projection :as projection]
-   [tick.core :as tick]))
+  (:require [template.events :as events]
+            [template.projection :as projection]
+            [tick.core :as tick]))
 
 (defn aggregate-created-event
   [{:keys [id stream-id timestamp data]
@@ -25,16 +24,16 @@
 
 (defn project [events] (reduce apply-event {} events))
 
-(defn project-aggregate [store id]
-  (project (events/get-aggregate-events store id)))
+(defn project-aggregate [database id]
+  (project (events/get-aggregate-events database id)))
 
-(defn create-aggregate [store data]
+(defn create-aggregate [database data]
   (let [aggregate-id (random-uuid)
         event (aggregate-created-event {:stream-id aggregate-id
                                         :data (merge {:id aggregate-id} data)})
-        _ (events/raise store event)
-        aggregate (project-aggregate store aggregate-id)]
-    (projection/upsert store {:id aggregate-id
-                              :type "aggregate"
-                              :data aggregate})
+        _ (events/raise database event)
+        aggregate (project-aggregate database aggregate-id)]
+    (projection/upsert database {:id aggregate-id
+                                 :type "aggregate"
+                                 :data aggregate})
     aggregate))
