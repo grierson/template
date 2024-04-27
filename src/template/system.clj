@@ -47,10 +47,6 @@
   [_]
   (ds/system ::base {[:env] (env-config :production)}))
 
-(defmethod ds/named-system ::development
-  [_]
-  (ds/system ::base {[:env] (env-config :development)}))
-
 (defmethod ds/named-system :donut.system/repl
   [_]
   (ds/system ::development))

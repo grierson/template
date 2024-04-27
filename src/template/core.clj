@@ -1,9 +1,9 @@
 (ns template.core
-  (:require [template.system :as system]
+  (:require [template.helper :as helper]
             [donut.system :as ds])
   (:gen-class))
 
 (defn -main
   []
   (println "running...")
-  (ds/start ::system/development))
+  (ds/start ::helper/test))

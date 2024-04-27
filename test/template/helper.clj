@@ -35,7 +35,9 @@
 
         database {:database {:port postgres-container-port}}
 
-        webserver {:webserver {:port (freeport/get-free-port!)}}
+        webserver-port (freeport/get-free-port!)
+        _ (println "running on: " webserver-port)
+        webserver {:webserver {:port webserver-port}}
         db-component
         #::ds{:start (fn [_] postgres-container)
               :stop (fn [{:keys [::ds/instance]}] (tc/stop! instance))}
