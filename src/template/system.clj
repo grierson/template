@@ -1,12 +1,12 @@
 (ns template.system
-  (:require [aero.core :as aero]
-            [clojure.java.io :as io]
-            [donut.system :as ds]
-            [donut.system.repl :as dsr]
-            [freeport.core :as freeport]
-            [next.jdbc :as jdbc]
-            [ring.adapter.jetty :as rj]
-            [template.handler :as handler]))
+  (:require
+   [aero.core :as aero]
+   [clojure.java.io :as io]
+   [donut.system :as ds]
+   [donut.system.repl :as dsr]
+   [next.jdbc :as jdbc]
+   [ring.adapter.jetty :as rj]
+   [template.handler :as handler]))
 
 (defn env-config
   [profile]
@@ -50,15 +50,6 @@
 (defmethod ds/named-system ::development
   [_]
   (ds/system ::base {[:env] (env-config :development)}))
-
-(defmethod ds/named-system ::test
-  [_]
-  (let [webserver {:webserver {:port (freeport/get-free-port!)}}
-        env-config (merge-with into
-                               (env-config :development)
-                               webserver)
-        config {[:env] env-config}]
-    (ds/system ::base config)))
 
 (defmethod ds/named-system :donut.system/repl
   [_]

@@ -12,10 +12,6 @@
   {:doc "bb nrepl server"
    :task (shell "bb nrepl-server")}
 
-  test:database
-  {:doc "Start test database"
-   :task (shell "docker run -e POSTGRES_PASSWORD=postgres -p 5432:5432 -d postgres")}
-
   test
   {:doc "Run tests"
    :task (shell "./bin/kaocha")}

@@ -1,60 +1,25 @@
 (ns template.resource-test
   (:require
-   [clj-test-containers.core :as tc]
    [clojure.test :refer [deftest is testing use-fixtures]]
    [donut.system :as ds]
-   [freeport.core :as freeport]
    [halboy.navigator :as navigator]
    [halboy.resource :as hal]
    [next.jdbc :as jdbc]
    [placid-fish.core :as uris]
-   [template.audit :as audit]
-   [template.system :as system :refer [env-config]]))
+   [template.helper :as helper]
+   [template.system]))
 
 (require 'hashp.core)
-
-(defn make-postgres-testcontainer [{:keys [image password port]}]
-  (let [test-container (tc/create {:image-name image
-                                   :env-vars {"POSTGRES_PASSWORD" password}
-                                   :exposed-ports [port]
-                                   :wait-for      {:wait-strategy   :log
-                                                   :message         "accept connections"
-                                                   :times           2
-                                                   :startup-timeout 10}})]
-    (tc/start! test-container)))
 
 (def test-system (atom nil))
 
 (use-fixtures
   :once
   (fn [tests]
-    (let [{:keys [database] :as env} (env-config :development)
-
-          postgres-container
-          (make-postgres-testcontainer
-           (select-keys database [:image :password :port]))
-
-          postgres-container-port
-          (get (:mapped-ports postgres-container) (:port database))
-
-          db-spec (merge database {:port postgres-container-port})
-          datasource (jdbc/get-datasource db-spec)
-          _ (audit/make-tables datasource)
-
-          webserver {:webserver {:port (freeport/get-free-port!)}}
-
-          database {:database {:port postgres-container-port}}
-
-          system-overrides (merge-with into
-                                       env
-                                       webserver
-                                       database)
-          config {[:env] system-overrides}
-          system (ds/start ::system/test config)
+    (let [system (ds/start ::helper/test)
           _ (reset! test-system system)]
       (tests)
-      (ds/stop system)
-      (tc/stop! postgres-container))))
+      (ds/stop system))))
 
 (defn clear-tables [store]
   (jdbc/execute! store ["TRUNCATE TABLE events"])
