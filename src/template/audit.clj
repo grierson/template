@@ -12,6 +12,7 @@
       position SERIAL,
       type varchar NOT NULL,
       stream_id UUID NOT NULL,
+      stream_type varchar NOT NULL,
       data jsonb NOT NULL,
       timestamp TIMESTAMP default now() NOT NULL)"])
   (jdbc/execute!
@@ -34,11 +35,11 @@
 (defn get-aggregate-events [database id]
   (sql/query database ["SELECT * FROM events WHERE stream_id = ?" id] jdbc/snake-kebab-opts))
 
-(defn raise [database {:keys [id] :as event}]
+(defn raise-event [database {:keys [id] :as event}]
   (sql/insert! database :events event jdbc/snake-kebab-opts)
   (sql/get-by-id database :events id))
 
-(defn upsert [database projection]
+(defn upsert-projection [database projection]
   (sql/insert! database :projections projection jdbc/snake-kebab-opts))
 
 (defn get-projections
@@ -49,5 +50,11 @@
 (defn get-projection [database id]
   (sql/get-by-id database :projections id jdbc/snake-kebab-opts))
 
-
-
+(defn create-projection! [database project-fn {:keys [stream-id stream-type] :as event}]
+  (let [_ (raise-event database event)
+        projection (project-fn database stream-id)
+        projection-record {:id stream-id
+                           :type stream-type
+                           :data projection}]
+    (upsert-projection database projection-record)
+    projection-record))

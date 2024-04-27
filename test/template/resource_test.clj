@@ -152,8 +152,8 @@
 (deftest get-aggregate-test
   (let [{:keys [address]} (extract @test-system)
         name "alice"
-        navigator (-> (navigator/discover address)
-                      (navigator/post :aggregates {:name name}))
+        navigator  (-> (navigator/discover address)
+                       (navigator/post :aggregates {:name name}))
         resource (navigator/resource navigator)]
     (testing "Calling GET returns 200"
       (is (= 200 (navigator/status navigator))))

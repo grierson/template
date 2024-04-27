@@ -1,4 +1,4 @@
-(ns template.resource
+(ns template.handler
   (:require
    [template.aggregate.route :as aggregate]
    [muuntaja.core :as m]
@@ -15,8 +15,7 @@
   [discovery/route
    health/route
    (events-resource/route dependencies)
-   (aggregate/aggregate-route dependencies)
-   (aggregate/aggregates-route dependencies)])
+   (aggregate/route dependencies)])
 
 (defn make-router [routes]
   (ring/router

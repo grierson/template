@@ -6,7 +6,7 @@
             [freeport.core :as freeport]
             [next.jdbc :as jdbc]
             [ring.adapter.jetty :as rj]
-            [template.resource :as resource]))
+            [template.handler :as handler]))
 
 (defn env-config
   [profile]
@@ -27,7 +27,7 @@
     :http
     {:handler
      #::ds{:start  (fn [{{:keys [database]} ::ds/config}]
-                     (resource/make-handler {:database database}))
+                     (handler/make-handler {:database database}))
            :config {:database (ds/ref [:components :database])}}
 
      :server

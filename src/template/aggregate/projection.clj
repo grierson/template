@@ -10,6 +10,7 @@
          stream-id (random-uuid)}}]
   {:id          id
    :type        "aggregate-created"
+   :stream-type "aggregate"
    :stream-id   stream-id
    :data        data
    :timestamp   timestamp})
@@ -27,13 +28,8 @@
 (defn project [database id]
   (make-projection (audit/get-aggregate-events database id)))
 
-(defn create-aggregate [database data]
-  (let [aggregate-id (random-uuid)
-        event (aggregate-created-event {:stream-id aggregate-id
-                                        :data (merge {:id aggregate-id} data)})
-        _ (audit/raise database event)
-        aggregate (project database aggregate-id)]
-    (audit/upsert database {:id aggregate-id
-                            :type "aggregate"
-                            :data aggregate})
-    aggregate))
+(defn create-projection! [database data]
+  (audit/create-projection!
+   database
+   project
+   (aggregate-created-event {:data data})))
