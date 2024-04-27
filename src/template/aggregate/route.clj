@@ -16,7 +16,7 @@
      :body (-> (resource/new-resource self-url)
                (resource/add-links
                 {:discovery (urls/url-for router request :discovery)})
-               (resource/add-properties (:projections/data aggregate))
+               (resource/add-properties aggregate)
                (haljson/resource->json))}))
 
 (defn list-handler [{:keys [database]} request]
