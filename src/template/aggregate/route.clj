@@ -33,13 +33,13 @@
 (defn create-handler [{:keys [database]} request]
   (let [{::reitit/keys [router]} request
         {{{:keys [name]} :body} :parameters} request
-        aggregate (projection/create-projection! database {:name name})
-        self-url (urls/url-for router request :aggregate {:id (:id aggregate)})]
+        {:keys [:projections/id :projections/data]} (projection/create-projection! database {:name name})
+        self-url (urls/url-for router request :aggregate {:id id})]
     {:status 201
      :headers {"Location" self-url}
      :body (-> (resource/new-resource self-url)
                (resource/add-links {:discovery (urls/url-for router request :discovery)})
-               (resource/add-properties (:data aggregate))
+               (resource/add-properties data)
                (haljson/resource->json))}))
 
 (defn route [dependencies]

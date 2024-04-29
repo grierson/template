@@ -51,10 +51,10 @@
   (sql/get-by-id database :projections id jdbc/snake-kebab-opts))
 
 (defn create-projection! [database project-fn {:keys [stream-id stream-type] :as event}]
-  (let [_ (raise-event database event)
-        projection (project-fn database stream-id)
-        projection-record {:id stream-id
-                           :type stream-type
-                           :data projection}]
-    (upsert-projection database projection-record)
-    projection-record))
+  (jdbc/with-transaction [transaction database]
+    (let [_ (raise-event transaction event)
+          projection (project-fn transaction stream-id)
+          projection-record {:id stream-id
+                             :type stream-type
+                             :data projection}]
+      (upsert-projection transaction projection-record))))

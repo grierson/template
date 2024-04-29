@@ -1,7 +1,9 @@
 (ns template.aggregate.projection
-  (:require [template.audit :as audit]
-            [tick.core :as tick]
-            [template.database.postgres]))
+  (:require
+   [template.audit :as audit]
+   [template.database.postgres]
+   [tick.core :as tick]
+   [template.aggregate.projection :as projection]))
 
 (defn aggregate-created-event
   [{:keys [id stream-id timestamp data]
@@ -29,7 +31,5 @@
   (make-projection (audit/get-aggregate-events database id)))
 
 (defn create-projection! [database data]
-  (audit/create-projection!
-   database
-   project
-   (aggregate-created-event {:data data})))
+  (let [event (aggregate-created-event {:data data})]
+    (audit/create-projection! database project event)))
