@@ -45,9 +45,8 @@
 (defn route [dependencies]
   [["/aggregate/:id"
     {:name :aggregate
-     :get
-     {:parameters {:path {:id uuid?}}
-      :handler (partial get-handler dependencies)}}]
+     :get {:parameters {:path {:id uuid?}}
+           :handler (partial get-handler dependencies)}}]
    ["/aggregates"
     {:name :aggregates
      :get {:handler (partial list-handler dependencies)}

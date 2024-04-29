@@ -47,6 +47,9 @@
   ([database limit]
    (sql/query database ["SELECT * FROM projections LIMIT ?" limit] jdbc/snake-kebab-opts)))
 
+(defn get-event [database id]
+  (sql/get-by-id database :events id jdbc/snake-kebab-opts))
+
 (defn get-projection [database id]
   (sql/get-by-id database :projections id jdbc/snake-kebab-opts))
 

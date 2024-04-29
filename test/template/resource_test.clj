@@ -7,7 +7,8 @@
    [next.jdbc :as jdbc]
    [placid-fish.core :as uris]
    [template.helper :as helper]
-   [template.system]))
+   [template.system]
+   [halboy.resource :as resource]))
 
 (require 'hashp.core)
 
@@ -102,6 +103,26 @@
 
     (testing "Contains events"
       (is (= 0 (count (hal/get-property resource :events)))))))
+
+(deftest get-event-test
+  (let [{:keys [address]} (extract @test-system)
+        name "alice"
+        _  (-> (navigator/discover address)
+               (navigator/post :aggregates {:name name}))
+        navigator (-> (navigator/discover address)
+                      (navigator/get :events))
+        resource (navigator/resource navigator)
+        events (resource/get-resource resource :events)
+        first-event (first events)
+
+        first-event-href (resource/get-href first-event :self)
+        event-navigator (navigator/discover first-event-href)
+        event-resource (navigator/resource event-navigator)]
+    (testing "Calling GET returns 200"
+      (is (= 200 (navigator/status event-navigator))))
+    (testing "properties"
+      (is (= name (hal/get-property event-resource :name)))
+      (is (= "aggregate-created" (hal/get-property event-resource :type))))))
 
 (deftest post-aggregates-test
   (let [{:keys [address]} (extract @test-system)
